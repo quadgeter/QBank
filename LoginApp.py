@@ -5,6 +5,21 @@ from PIL import Image, ImageTk
 from functools import partial
 import sqlite3
 from Jrgeter_BankAccount import BankAccount
+conn = None
+cursor = None
+
+conn = sqlite3.connect('Userlog.db')
+
+cursor = conn.cursor()
+command1 = cursor.execute("""CREATE TABLE IF NOT EXISTS users(
+  firstName TEXT,
+  lastName TEXT,
+  username TEXT PRIMARY KEY,
+  password TEXT,
+  balance REAL, 
+  tranaction TEXT)""")
+
+conn.commit()
 
 class App:
     def __init__(self, root):
@@ -36,6 +51,7 @@ class App:
         self.newUserBtn = ttk.Button(self.root, text="Don't have an account? Create one", command=App.createNewUser) 
         self.newUserBtn.pack(pady=25)
         
+        
     def enter(self):
         username = self.userNameEntry.get()
         password = self.passwordEntry.get()    
@@ -47,7 +63,7 @@ class App:
         conn = sqlite3.connect("userLog.db")
         c = conn.cursor()
         
-        c.execute("SELECT * FROM log WHERE username = ? AND password = ?", (myList))
+        c.execute("SELECT * FROM users WHERE username = ? AND password = ?", (myList))
         result = c.fetchone()
         conn.commit()
         conn.close()
@@ -63,7 +79,8 @@ class App:
         secWin = SecondWindow()
         
 
-            
+    
+   
 
 
 class SecondWindow(tk.Toplevel, App):
@@ -72,14 +89,27 @@ class SecondWindow(tk.Toplevel, App):
         self.secWin.title("New User")
         self.secWin.geometry("375x400")  
     
-        self.label = Label(self.secWin, text="Create New Account", font=("Calibri", 18)).pack(pady=20)
+        self.label = ttk.Label(self.secWin, text="Create New Account", font=("Calibri", 18)).pack(pady=20)
         
-        self.newUserLabel = Label(self.secWin, text="Create username", font=("Calibri", 11)).pack(pady=5)
-        self.newUserEntry = ttk.Entry(self.secWin, width=40)
+        
+        
+        self.fnText = tk.StringVar()
+        self.fnText.set("First Name")
+        self.fnameLabel = ttk.Label(self.secWin, text="First Name", font=("Calibri", 11)).pack(pady=5)
+        self.fnameEntry = ttk.Entry(self.secWin, width=20)
+        self.fnameEntry.pack()
+        
+        
+        self.lnameLabel = ttk.Label(self.secWin, text="Last Name", font=("Calibri", 11)).pack(pady=5)
+        self.lnameEntry = ttk.Entry(self.secWin, width=20)
+        self.lnameEntry.pack()
+        
+        self.newUserLabel = ttk.Label(self.secWin, text="Create username", font=("Calibri", 11)).pack(pady=5)
+        self.newUserEntry = ttk.Entry(self.secWin, width=20)
         self.newUserEntry.pack()
 
         self.newPasswordLabel = Label(self.secWin, text="Create password", font=("Calibri", 11)).pack(pady=5)
-        self.newPasswordEntry = ttk.Entry(self.secWin, width=40)
+        self.newPasswordEntry = ttk.Entry(self.secWin, width=20)
         self.newPasswordEntry.pack()
 
         style = ttk.Style()
@@ -90,6 +120,7 @@ class SecondWindow(tk.Toplevel, App):
         self.backBtn = ttk.Button(self.secWin, text="Back to sign in", command=SecondWindow.backHome)
         self.backBtn.pack(pady=15)
         
+    
     def databaseEntry(self, username, password):
         userInfo = [str(self.newUserEntry.get()), str(self.newPasswordEntry.get())]
         conn = None
@@ -97,7 +128,7 @@ class SecondWindow(tk.Toplevel, App):
                     
         conn = sqlite3.connect("userLog.db")
         c = conn.cursor()
-        c.execute("INSERT INTO log VALUES (?,?)", userInfo)
+        c.execute("INSERT INTO users(username, password) VALUES(?,?)", (userInfo))
                              
         conn.commit()
         conn.close()
@@ -127,8 +158,26 @@ class ThirdWin(tk.Toplevel, App, BankAccount):
         self.logoutBtn.place(x=290, y=5)
         self.homeBtn = ttk.Button(self.thirdWin, text="Home", command=partial(ThirdWin.goHome, self))
         self.homeBtn.place(x=10, y= 5)
+        
+        self.userList = [self.userNameEntry, self.passwordEntry]
+        
+        self.conn = sqlite3.connect('UserLog.db')
+        self.cursor = self.conn.cursor()
+        self.cursor.execute("SELECT balance FROM users WHERE username = ? AND password = ?", (self.userList))
+        self.bal = self.cursor.fetchone()
+        print(self.bal)
+        self.conn.commit()
+        self.conn.close()
+        
+        
         self.bank = BankAccount()
-        self.balLabel = Label(self.thirdWin, text="Your current balance is: $" + str(self.bank.getBalance()) + ".")
+        if self.bal[0] == None:
+            self.bank.setBalance(balance=0)
+            
+            self.balLabel = Label(self.thirdWin, text="Your current balance is: $0.00.")
+        else:
+            self.bank.setBalance(balance=self.bal[0])    
+            self.balLabel = Label(self.thirdWin, text="Your current balance is: $" + str(self.bal[0]) + ".")
         self.balLabel.pack()
         self.btnFrame = ThirdWin.gridFrame(self)
         
@@ -146,11 +195,11 @@ class ThirdWin(tk.Toplevel, App, BankAccount):
         self.depositBtn.grid(column=0, row=2, padx= 7, sticky="news")
         self.withBtn = ttk.Button(self.frame, text="Withdraw", command=partial(ThirdWin.withFrame, self))
         self.withBtn.grid(column=1, row=2, padx=7, sticky="news", rowspan=2)
-        self.prevTrans = ttk.Button(self.frame, text="View Previous \n Transaction")#, height=4, width=12)
+        self.prevTrans = ttk.Button(self.frame, text="View Previous \n Transaction", command=partial(ThirdWin.prevTransBtn, self))
         self.prevTrans.grid(column=0, row=4, pady=14, padx=7, sticky='news')
         
-        self.setBtn = ttk.Button(self.frame, text="Settings")#, height=4, width=12)
-        self.setBtn.grid(column=1, row=4, pady=14, padx=7, sticky="news")
+        self.settings = ttk.Button(self.frame, text="Settings", command=partial(ThirdWin.setBtn, self))
+        self.settings.grid(column=1, row=4, pady=14, padx=7, sticky="news")
         
                     
     def logout(self):
@@ -160,8 +209,31 @@ class ThirdWin(tk.Toplevel, App, BankAccount):
         self.goodBye.pack(pady=30)
         self.logoutMsg = Label(self.thirdWin, text=f"Succesfully Logged Out. \n Thank you for using QBank", font=("Calibri", 15))
         self.logoutMsg.pack(pady=15)
-    
-    def goHome(self):      #FIXME: pressing HOME while home creates another welcome msg
+        
+        
+        
+        # tester code
+        conn = sqlite3.connect('UserLog.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT balance FROM users WHERE username = ? AND password = ?", (self.userList))
+        self.bal = cursor.fetchone()
+        print(self.bal)
+        conn.commit()
+        conn.close()
+        
+        self.dbBalance = float(self.bank.getBalance())
+        userInfo = [self.dbBalance, str(self.userNameEntry), str(self.passwordEntry)]
+        print(userInfo)
+        conn = sqlite3.connect('UserLog.db')
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET balance = ? WHERE username = ? AND password = ?", (userInfo))
+        conn.commit()
+        conn.close()
+        
+        print("Balance added")
+        
+        
+    def goHome(self):      #FIXME: redo code to display balance 
         for widget in self.thirdWin.winfo_children():
            widget.place_forget()
         
@@ -192,6 +264,8 @@ class ThirdWin(tk.Toplevel, App, BankAccount):
         self.bank.deposit(float(self.depEntry.get()))
         print(self.bank.getPreviousTransaction())
         print(f'Balance ${self.bank.getBalance()}')
+        userMsg = Label(self.thirdWin, text=str(self.bank.getPreviousTransaction()), font=("Calibri", 11))
+        userMsg.place(x=125, y=250)
         self.depEntry.delete(0, END)
         
     def withFrame(self):
@@ -209,7 +283,15 @@ class ThirdWin(tk.Toplevel, App, BankAccount):
         self.bank.withdraw(float(self.withEntry.get()))
         print(self.bank.getPreviousTransaction())
         print(f'Balance ${self.bank.getBalance()}')
+        userMsg = Label(self.thirdWin, text=str(self.bank.getPreviousTransaction()), font=("Calibri", 11))
+        userMsg.place(x=125, y=250)
         self.withEntry.delete(0, END)
+        
+    def setBtn(self):
+        print("FIXME")
+        
+    def prevTransBtn(self):
+        print("FIXME")
         
    
 def main():
