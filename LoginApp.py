@@ -78,11 +78,6 @@ class App:
     def createNewUser():
         secWin = SecondWindow()
         
-
-    
-   
-
-
 class SecondWindow(tk.Toplevel, App):
     def __init__(self):
         self.secWin = Toplevel()
@@ -90,8 +85,6 @@ class SecondWindow(tk.Toplevel, App):
         self.secWin.geometry("375x400")  
     
         self.label = ttk.Label(self.secWin, text="Create New Account", font=("Calibri", 18)).pack(pady=20)
-        
-        
         
         self.fnText = tk.StringVar()
         self.fnText.set("First Name")
@@ -115,20 +108,20 @@ class SecondWindow(tk.Toplevel, App):
         style = ttk.Style()
         style.configure("TButton", font=("Calibri", 9))
         self.submitBtn = ttk.Button(self.secWin, text="Create Account", command=partial(SecondWindow.databaseEntry, self, self.newUserEntry, self.newPasswordEntry))
-        self.submitBtn.pack(pady=5)
+        self.submitBtn.pack(pady=10)
         
         self.backBtn = ttk.Button(self.secWin, text="Back to sign in", command=SecondWindow.backHome)
-        self.backBtn.pack(pady=15)
+        self.backBtn.pack(pady=8)
         
     
     def databaseEntry(self, username, password):
-        userInfo = [str(self.newUserEntry.get()), str(self.newPasswordEntry.get())]
+        userInfo = [str(self.fnameEntry.get()), str(self.lnameEntry.get()), str(self.newUserEntry.get()), str(self.newPasswordEntry.get())]
         conn = None
         c = None
                     
         conn = sqlite3.connect("userLog.db")
         c = conn.cursor()
-        c.execute("INSERT INTO users(username, password) VALUES(?,?)", (userInfo))
+        c.execute("INSERT INTO users(firstName, lastName, username, password) VALUES(?,?,?,?)", (userInfo))
                              
         conn.commit()
         conn.close()
@@ -157,7 +150,7 @@ class ThirdWin(tk.Toplevel, App, BankAccount):
         self.logoutBtn = ttk.Button(self.thirdWin, text="Logout", command=partial(ThirdWin.logout, self)) 
         self.logoutBtn.place(x=290, y=5)
         self.homeBtn = ttk.Button(self.thirdWin, text="Home", command=partial(ThirdWin.goHome, self))
-        self.homeBtn.place(x=10, y= 5)
+        self.homeBtn.place(x=10, y=5)
         
         self.userList = [self.userNameEntry, self.passwordEntry]
         
@@ -195,11 +188,8 @@ class ThirdWin(tk.Toplevel, App, BankAccount):
         self.depositBtn.grid(column=0, row=2, padx= 7, sticky="news")
         self.withBtn = ttk.Button(self.frame, text="Withdraw", command=partial(ThirdWin.withFrame, self))
         self.withBtn.grid(column=1, row=2, padx=7, sticky="news", rowspan=2)
-        self.prevTrans = ttk.Button(self.frame, text="View Previous \n Transaction", command=partial(ThirdWin.prevTransBtn, self))
-        self.prevTrans.grid(column=0, row=4, pady=14, padx=7, sticky='news')
-        
-        self.settings = ttk.Button(self.frame, text="Settings", command=partial(ThirdWin.setBtn, self))
-        self.settings.grid(column=1, row=4, pady=14, padx=7, sticky="news")
+        self.prevTrans = ttk.Button(self.frame, text="View Previous Transactions", command=partial(ThirdWin.prevTransBtn, self))
+        self.prevTrans.grid(column=0, row=4, pady=14, padx=7, columnspan= 2, sticky='news')
         
                     
     def logout(self):
@@ -287,8 +277,6 @@ class ThirdWin(tk.Toplevel, App, BankAccount):
         userMsg.place(x=125, y=250)
         self.withEntry.delete(0, END)
         
-    def setBtn(self):
-        print("FIXME")
         
     def prevTransBtn(self):
         print("FIXME")
